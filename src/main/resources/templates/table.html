@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>bootstrap-table</title>
+    <!-- jquery -->
+    <script src="https://cdn.staticfile.org/jquery/2.1.1/jquery.min.js"></script>
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <!-- bootstrap-table -->
+    <link href="https://cdn.bootcss.com/bootstrap-table/1.11.1/bootstrap-table.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap-table/1.11.1/locale/bootstrap-table-zh-CN.min.js"></script>
+
+</head>
+
+<body>
+<div class="container body-content" style="padding-top:20px;">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            查询条件
+        </div>
+        <div class="panel-body">
+            <form class="form-inline">
+                <div class="row">
+                    <div class="col-sm-4">
+                        <label class="control-label">图书名称：</label><input id="txtTitle" type="text" class="form-control">
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="control-label">图书作者：</label><input id="txtAuthor" type="text" class="form-control">
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="control-label">出版社：</label><input id="txtPublish" type="text" class="form-control">
+                    </div>
+                </div>
+                <div class="row text-right" style="margin-top:20px;">
+                    <div id="right">
+                        <button id="searchContent" type="button" class="btn btn-default">查询</button>
+                        <button id="deleteContent" type="button" class="btn btn-default">批量删除</button>
+                    </div>
+                </div>
+                <div class="row text-left" style="margin-top:20px;">
+                    <div id="left">
+                        <button id="insertRow" type="button" class="btn btn-default">插入一行</button>
+                        <button id="getTableData" type="button" class="btn btn-default" onclick="getData()">获取数据</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+<table id="table"></table>
+</div>
+</body>
+
+<script>
+    $("#insertRow").click(function () {
+        $("#table").bootstrapTable('insertRow',{
+            index:0,
+            row:{
+                username:'',
+                fullname:'',
+                status:'',
+                availableSpace:'',
+                totalSpace:'',
+                storageServer:''
+            }
+        })
+    })
+
+    $("#table").bootstrapTable('destroy').bootstrapTable({
+        data:getData(),
+        cache:false,
+        striped:true,
+        pagination:true,
+        pageList:[10,20,50,100],
+        pageSize:10,
+        pageNumber:1,
+
+
+        // sortName:'id',
+        // sortOrder:'desc',
+        columns:getHeaderData(),
+        sidePagination:'client',
+
+        onClickCell:function(field,value,row,$element){
+            $element.attr('contenteditable',true);
+            $element.blur(function () {
+                var index = $element.parent().data('index');
+                var tdValue = $element.html();
+
+                saveData(index, field, tdValue);
+            })
+        },
+
+        onLoadSuccess: function(){
+            alert("数据加载成功");
+        },
+        onLoadError: function () {
+            alert("数据加载失败");
+        }
+    });
+
+    function getHeaderData()
+    {
+        var data = [];
+
+        $.ajax({
+            url:"getTableHeader",
+            type:"GET",
+            async:false,
+            success:function (result) {
+
+                data.push({checkbox:true, align:'center'});
+                for(var i = 0; i < (Object.keys(result)).length; i++){
+                    var property = result[i];
+                    var item = {
+                        title:property.title,
+                        field:property.field,
+                        align:'center',
+                        valign:'middle',
+                        width:'16%'
+                    }
+                    data.push(item);
+                }
+            }
+        })
+
+        console.log(data);
+        return data;
+
+    }
+
+    function getData() {
+        var data = [];
+
+        $.ajax({
+            url:"getTableContent",
+            type:"GET",
+            async:false,
+            success:function (result) {
+
+                for(var i = 0; i < (Object.keys(result)).length; i++){
+                    var property = result[i];
+                    var item = {
+                        username:property.userName,
+                        fullname:property.fullName,
+                        status:property.status,
+                        availableSpace:property.availableSpace,
+                        totalSpace:property.totalSpace,
+                        storageServer:property.storageServer
+                    }
+                    data.push(item);
+                }
+            }
+        })
+        $("#table").bootstrapTable('load', data);
+        return data;
+    }
+
+    function saveData(index,field,value) {
+        $("#table").bootstrapTable('updateCell',{
+            index:index,
+            field:field,
+            value:value
+        })
+        var args = {index:index, field:field, value:value};
+        $.ajax({
+            data:args,
+            url:"changeTableContent",
+            type:"GET",
+            async:true,
+            success:function () {
+                console.log("----------------changed-------------------");
+            }
+        })
+        console.log(index + "   " + field + "   " + value);
+    }
+</script>
+
+</html>
